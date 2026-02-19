@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TypeScout — AI Typeface Finder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            serif: ['Instrument Serif', 'Georgia', 'serif'],
+          },
+          colors: {
+            surface: {
+              50: '#FAFAFA',
+              100: '#F4F4F5',
+              200: '#E4E4E7',
+              300: '#D4D4D8',
+              400: '#A1A1AA',
+              500: '#71717A',
+              600: '#52525B',
+              700: '#3F3F46',
+              800: '#27272A',
+              900: '#18181B',
+            },
+            accent: {
+              DEFAULT: '#6366F1',
+              light: '#818CF8',
+              dark: '#4F46E5',
+              50: '#EEF2FF',
+              100: '#E0E7FF',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; }
+    .fade-in { animation: fadeIn 0.5s ease forwards; opacity: 0; }
+    .fade-in-up { animation: fadeInUp 0.5s ease forwards; opacity: 0; }
+    .slide-in { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .stagger-1 { animation-delay: 0.05s; }
+    .stagger-2 { animation-delay: 0.1s; }
+    .stagger-3 { animation-delay: 0.15s; }
+    .stagger-4 { animation-delay: 0.2s; }
+    .stagger-5 { animation-delay: 0.25s; }
+    .stagger-6 { animation-delay: 0.3s; }
+    .stagger-7 { animation-delay: 0.35s; }
+    .stagger-8 { animation-delay: 0.4s; }
+    textarea:focus, input:focus { outline: none; }
+    .pill-active { background: #6366F1; color: white; }
+    .progress-bar { transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    .font-card { transition: all 0.2s ease; }
+    .font-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+    .typing-dot { animation: typingBounce 1.4s infinite ease-in-out; }
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+    .shimmer { background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    ::selection { background: #E0E7FF; color: #4F46E5; }
+  </style>
+</head>
+<body class="bg-white text-surface-900 min-h-screen antialiased">
+
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-surface-100">
+    <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h8m-8 6h16"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-sm tracking-tight">TypeScout</span>
+      </div>
+      <button onclick="resetApp()" id="resetBtn" class="hidden text-xs text-surface-400 hover:text-surface-600 transition-colors cursor-pointer">
+        Start over
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-3xl mx-auto px-6 pt-28 pb-20">
+
+    <!-- Hero / Intro -->
+    <div id="heroSection" class="fade-in">
+      <h1 class="font-serif text-4xl sm:text-5xl text-surface-900 leading-tight tracking-tight">
+        Find the perfect<br>typeface for your project
+      </h1>
+      <p class="mt-4 text-surface-400 text-base max-w-md leading-relaxed">
+        Answer five quick questions about your project and get AI-curated font recommendations tailored to your brand.
+      </p>
+      <button onclick="startQuestionnaire()" class="mt-8 inline-flex items-center gap-2 bg-surface-900 text-white text-sm font-medium px-6 py-3 rounded-xl hover:bg-surface-800 transition-colors cursor-pointer">
+        Get started
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Questionnaire -->
+    <div id="questionnaireSection" class="hidden">
+      <!-- Progress -->
+      <div class="mb-10">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-medium text-surface-400" id="progressLabel">Question 1 of 5</span>
+          <span class="text-xs font-medium text-surface-400" id="progressPercent">0%</span>
+        </div>
+        <div class="h-1 bg-surface-100 rounded-full overflow-hidden">
+          <div id="progressBar" class="progress-bar h-full bg-accent rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Question Container -->
+      <div id="questionContainer"></div>
+
+      <!-- Navigation -->
+      <div class="flex items-center justify-between mt-10">
+        <button onclick="prevQuestion()" id="prevBtn" class="hidden text-sm text-surface-400 hover:text-surface-600 transition-colors flex items-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+          </svg>
+          Back
+        </button>
+        <div class="flex-1"></div>
+        <button onclick="nextQuestion()" id="nextBtn" class="bg-surface-900 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-surface-800 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer" disabled>
+          Continue
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingSection" class="hidden">
+      <div class="text-center py-20">
+        <div class="inline-flex items-center gap-1.5 mb-6">
+          <div class="typing-dot w-2 h-2 bg-accent rounded-full"></div>
+          <div class="typing-dot w-2 h-2 bg-accent rounded-full"></div>
+          <div class="typing-dot w-2 h-2 bg-accent rounded-full"></div>
+        </div>
+        <h2 class="font-serif text-2xl text-surface-900 mb-2">Analyzing your project</h2>
+        <p class="text-surface-400 text-sm">Curating the best typefaces for your brand...</p>
+      </div>
+      <!-- Skeleton cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div class="shimmer h-40 rounded-2xl"></div>
+        <div class="shimmer h-40 rounded-2xl"></div>
+        <div class="shimmer h-40 rounded-2xl"></div>
+        <div class="shimmer h-40 rounded-2xl"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="resultsSection" class="hidden">
+      <div class="mb-10 fade-in-up">
+        <h2 class="font-serif text-3xl sm:text-4xl text-surface-900 leading-tight">Your typeface recommendations</h2>
+        <p class="mt-3 text-surface-400 text-sm max-w-lg leading-relaxed" id="resultsSummary"></p>
+      </div>
+
+      <!-- Font Cards Grid -->
+      <div id="fontCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+
+      <!-- Actions -->
+      <div class="mt-10 pt-8 border-t border-surface-100 flex flex-col sm:flex-row items-start sm:items-center gap-4 fade-in-up stagger-8">
+        <button onclick="resetApp()" class="text-sm text-surface-400 hover:text-surface-600 transition-colors cursor-pointer">
+          Start a new search
+        </button>
+      </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="hidden fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 fade-in-up">
+        <div class="w-10 h-10 rounded-xl bg-accent-50 flex items-center justify-center mb-5">
+          <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-surface-900 mb-1">Connect your AI</h3>
+        <p class="text-sm text-surface-400 mb-6 leading-relaxed">Enter your OpenAI API key to power the font recommendations. Your key stays in your browser and is never sent to any server except OpenAI.</p>
+        <div class="relative">
+          <input
+            type="password"
+            id="apiKeyInput"
+            placeholder="sk-..."
+            class="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all"
+          >
+        </div>
+        <p id="apiKeyError" class="hidden text-red-500 text-xs mt-2"></p>
+        <div class="flex gap-3 mt-6">
+          <button onclick="closeApiKeyModal()" class="flex-1 text-sm text-surface-500 hover:text-surface-700 py-2.5 rounded-xl transition-colors cursor-pointer">
+            Cancel
+          </button>
+          <button onclick="saveApiKey()" class="flex-1 bg-surface-900 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-surface-800 transition-colors cursor-pointer">
+            Save & continue
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ─── State ───────────────────────────────────────
+    let currentStep = 0;
+    let answers = {};
+    const STORAGE_KEY = 'typescout_api_key';
+
+    const questions = [
+      {
+        id: 'niche',
+        label: 'What is the niche of your project?',
+        subtitle: 'The industry or category your project belongs to.',
+        type: 'input',
+        placeholder: 'e.g. Health & Wellness, FinTech, Fashion, Education...'
+      },
+      {
+        id: 'audience',
+        label: 'Who is the target audience?',
+        subtitle: 'Describe the people you are designing for.',
+        type: 'input',
+        placeholder: 'e.g. Young professionals aged 25-35, Gen Z creatives...'
+      },
+      {
+        id: 'description',
+        label: 'Give a brief description of the project.',
+        subtitle: 'A sentence or two about what the project is.',
+        type: 'textarea',
+        placeholder: 'e.g. A meditation app that helps busy professionals find calm in 5-minute sessions...'
+      },
+      {
+        id: 'feel',
+        label: 'How should the brand feel?',
+        subtitle: 'Select all that apply, or add your own.',
+        type: 'pills',
+        options: ['Modern', 'Premium', 'Playful', 'Corporate', 'Bold', 'Minimal', 'Elegant', 'Warm', 'Edgy', 'Friendly', 'Luxurious', 'Retro', 'Clean', 'Organic', 'Futuristic', 'Sophisticated'],
+        placeholder: 'Add custom feel...'
+      },
+      {
+        id: 'services',
+        label: 'What services or features will the project provide?',
+        subtitle: 'List the main offerings or capabilities.',
+        type: 'textarea',
+        placeholder: 'e.g. Online booking, personalized recommendations, community forums, analytics dashboard...'
+      }
+    ];
+
+    // ─── Rendering ───────────────────────────────────
+
+    function renderQuestion(index) {
+      const q = questions[index];
+      const container = document.getElementById('questionContainer');
+      const value = answers[q.id] || '';
+
+      let inputHTML = '';
+
+      if (q.type === 'input') {
+        inputHTML = `
+          <input
+            type="text"
+            id="answerInput"
+            value="${escapeAttr(typeof value === 'string' ? value : '')}"
+            placeholder="${q.placeholder}"
+            class="w-full px-5 py-4 bg-surface-50 border border-surface-200 rounded-2xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all placeholder:text-surface-300"
+            oninput="handleInput(this.value)"
+            onkeydown="if(event.key==='Enter' && !document.getElementById('nextBtn').disabled) nextQuestion()"
+          >
+        `;
+      } else if (q.type === 'textarea') {
+        inputHTML = `
+          <textarea
+            id="answerInput"
+            placeholder="${q.placeholder}"
+            rows="4"
+            class="w-full px-5 py-4 bg-surface-50 border border-surface-200 rounded-2xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all resize-none placeholder:text-surface-300"
+            oninput="handleInput(this.value)"
+          >${typeof value === 'string' ? escapeHTML(value) : ''}</textarea>
+        `;
+      } else if (q.type === 'pills') {
+        const selected = Array.isArray(value) ? value : [];
+        const pills = q.options.map(opt => {
+          const isActive = selected.includes(opt);
+          return `<button onclick="togglePill('${opt}')" class="px-4 py-2 rounded-full text-sm font-medium border transition-all cursor-pointer ${isActive ? 'pill-active border-accent' : 'border-surface-200 text-surface-500 hover:border-surface-300 hover:text-surface-700 bg-white'}">${opt}</button>`;
+        }).join('');
+
+        inputHTML = `
+          <div class="flex flex-wrap gap-2 mb-4" id="pillsContainer">${pills}</div>
+          <input
+            type="text"
+            id="customPillInput"
+            placeholder="${q.placeholder}"
+            class="w-full px-5 py-3 bg-surface-50 border border-surface-200 rounded-2xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all placeholder:text-surface-300"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomPill()}"
+          >
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="fade-in-up">
+          <h2 class="font-serif text-2xl sm:text-3xl text-surface-900 leading-snug mb-2">${q.label}</h2>
+          <p class="text-surface-400 text-sm mb-6">${q.subtitle}</p>
+          ${inputHTML}
+        </div>
+      `;
+
+      updateNavigation();
+
+      // Focus input
+      setTimeout(() => {
+        const input = document.getElementById('answerInput');
+        if (input) input.focus();
+      }, 100);
+    }
+
+    function updateNavigation() {
+      const q = questions[currentStep];
+      const value = answers[q.id];
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      prevBtn.classList.toggle('hidden', currentStep === 0);
+
+      let hasValue = false;
+      if (Array.isArray(value)) {
+        hasValue = value.length > 0;
+      } else {
+        hasValue = typeof value === 'string' && value.trim().length > 0;
+      }
+
+      nextBtn.disabled = !hasValue;
+      nextBtn.innerHTML = currentStep === questions.length - 1
+        ? 'Get recommendations <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>'
+        : 'Continue <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>';
+
+      // Progress
+      const progress = ((currentStep) / questions.length) * 100;
+      document.getElementById('progressBar').style.width = progress + '%';
+      document.getElementById('progressLabel').textContent = `Question ${currentStep + 1} of ${questions.length}`;
+      document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+    }
+
+    // ─── Handlers ────────────────────────────────────
+
+    function handleInput(value) {
+      answers[questions[currentStep].id] = value;
+      updateNavigation();
+    }
+
+    function togglePill(value) {
+      const q = questions[currentStep];
+      if (!Array.isArray(answers[q.id])) answers[q.id] = [];
+      const idx = answers[q.id].indexOf(value);
+      if (idx > -1) {
+        answers[q.id].splice(idx, 1);
+      } else {
+        answers[q.id].push(value);
+      }
+      renderQuestion(currentStep);
+    }
+
+    function addCustomPill() {
+      const input = document.getElementById('customPillInput');
+      const val = input.value.trim();
+      if (!val) return;
+      const q = questions[currentStep];
+      if (!Array.isArray(answers[q.id])) answers[q.id] = [];
+      if (!answers[q.id].includes(val)) {
+        answers[q.id].push(val);
+      }
+      input.value = '';
+      renderQuestion(currentStep);
+    }
+
+    function startQuestionnaire() {
+      document.getElementById('heroSection').classList.add('hidden');
+      document.getElementById('questionnaireSection').classList.remove('hidden');
+      document.getElementById('resetBtn').classList.remove('hidden');
+      currentStep = 0;
+      renderQuestion(0);
+    }
+
+    function nextQuestion() {
+      if (currentStep < questions.length - 1) {
+        currentStep++;
+        renderQuestion(currentStep);
+      } else {
+        submitAnswers();
+      }
+    }
+
+    function prevQuestion() {
+      if (currentStep > 0) {
+        currentStep--;
+        renderQuestion(currentStep);
+      }
+    }
+
+    function resetApp() {
+      currentStep = 0;
+      answers = {};
+      document.getElementById('heroSection').classList.remove('hidden');
+      document.getElementById('questionnaireSection').classList.add('hidden');
+      document.getElementById('loadingSection').classList.add('hidden');
+      document.getElementById('resultsSection').classList.add('hidden');
+      document.getElementById('resetBtn').classList.add('hidden');
+    }
+
+    // ─── API Key ─────────────────────────────────────
+
+    function getApiKey() {
+      return localStorage.getItem(STORAGE_KEY) || '';
+    }
+
+    function showApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      modal.classList.remove('hidden');
+      document.getElementById('apiKeyInput').value = getApiKey();
+      document.getElementById('apiKeyError').classList.add('hidden');
+      setTimeout(() => document.getElementById('apiKeyInput').focus(), 100);
+    }
+
+    function closeApiKeyModal() {
+      document.getElementById('apiKeyModal').classList.add('hidden');
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (!key) {
+        document.getElementById('apiKeyError').textContent = 'Please enter a valid API key.';
+        document.getElementById('apiKeyError').classList.remove('hidden');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, key);
+      closeApiKeyModal();
+      generateRecommendations();
+    }
+
+    // ─── Submit ──────────────────────────────────────
+
+    function submitAnswers() {
+      const key = getApiKey();
+      if (!key) {
+        showApiKeyModal();
+        return;
+      }
+      generateRecommendations();
+    }
+
+    async function generateRecommendations() {
+      // Show loading
+      document.getElementById('questionnaireSection').classList.add('hidden');
+      document.getElementById('loadingSection').classList.remove('hidden');
+
+      const prompt = buildPrompt();
+      const apiKey = getApiKey();
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are an expert typographer and brand designer. You recommend fonts that are available on Google Fonts. You respond ONLY in valid JSON — no markdown, no code fences, no extra text. Return exactly this structure:
+{
+  "summary": "A brief 1-2 sentence summary of why these fonts were chosen for this project.",
+  "fonts": [
+    {
+      "name": "Font Name",
+      "category": "serif|sans-serif|display|handwriting|monospace",
+      "use": "Heading|Body|Accent|Logo",
+      "reason": "Short reason why this font fits the project.",
+      "pairsWith": "Name of another font from this list it pairs well with",
+      "preview": "A short preview sentence relevant to the project"
+    }
+  ]
+}
+Return exactly 8 fonts. Each must be a real Google Font. Provide a good mix of heading, body, and accent fonts. Make sure paired fonts actually complement each other.`
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 1500
+          })
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            localStorage.removeItem(STORAGE_KEY);
+            showApiKeyModal();
+            document.getElementById('apiKeyError').textContent = 'Invalid API key. Please check and try again.';
+            document.getElementById('apiKeyError').classList.remove('hidden');
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('questionnaireSection').classList.remove('hidden');
+            return;
+          }
+          throw new Error(err.error?.message || 'API request failed');
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+
+        // Parse JSON — strip code fences if present
+        const cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        const result = JSON.parse(cleaned);
+
+        renderResults(result);
+      } catch (err) {
+        console.error('Error:', err);
+        document.getElementById('loadingSection').classList.add('hidden');
+        document.getElementById('questionnaireSection').classList.remove('hidden');
+        renderQuestion(currentStep);
+        alert('Something went wrong: ' + err.message + '\n\nPlease try again.');
+      }
+    }
+
+    function buildPrompt() {
+      return `I'm designing a project and need font recommendations. Here are the details:
+
+**Niche:** ${answers.niche || 'Not specified'}
+**Target Audience:** ${answers.audience || 'Not specified'}
+**Project Description:** ${answers.description || 'Not specified'}
+**Brand Feel:** ${Array.isArray(answers.feel) ? answers.feel.join(', ') : (answers.feel || 'Not specified')}
+**Services/Features:** ${answers.services || 'Not specified'}
+
+Please recommend 8 Google Fonts that would be perfect for this project. Include a mix of heading, body, and accent fonts. Explain why each font fits and suggest pairings from the list.`;
+    }
+
+    // ─── Results ─────────────────────────────────────
+
+    function renderResults(result) {
+      document.getElementById('loadingSection').classList.add('hidden');
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('resultsSummary').textContent = result.summary;
+
+      // Load all Google Fonts
+      const fontNames = result.fonts.map(f => f.name.replace(/ /g, '+')).join('&family=');
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${fontNames}:wght@300;400;500;600;700&display=swap`;
+      document.head.appendChild(link);
+
+      const grid = document.getElementById('fontCardsGrid');
+      grid.innerHTML = '';
+
+      const categoryColors = {
+        'serif': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
+        'sans-serif': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
+        'display': { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
+        'handwriting': { bg: 'bg-pink-50', text: 'text-pink-600', border: 'border-pink-200' },
+        'monospace': { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
+      };
+
+      const useColors = {
+        'Heading': { bg: 'bg-indigo-50', text: 'text-indigo-600' },
+        'Body': { bg: 'bg-emerald-50', text: 'text-emerald-600' },
+        'Accent': { bg: 'bg-rose-50', text: 'text-rose-600' },
+        'Logo': { bg: 'bg-violet-50', text: 'text-violet-600' },
+      };
+
+      result.fonts.forEach((font, i) => {
+        const cat = categoryColors[font.category] || categoryColors['sans-serif'];
+        const use = useColors[font.use] || useColors['Body'];
+
+        const card = document.createElement('div');
+        card.className = `font-card slide-in stagger-${i + 1} bg-white border border-surface-200/80 rounded-2xl p-6 flex flex-col gap-4 cursor-default`;
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1.5">
+                <h3 class="font-semibold text-surface-900 text-base truncate">${escapeHTML(font.name)}</h3>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${cat.bg} ${cat.text}">${escapeHTML(font.category)}</span>
+                <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${use.bg} ${use.text}">${escapeHTML(font.use)}</span>
+              </div>
+            </div>
+            <a href="https://fonts.google.com/specimen/${encodeURIComponent(font.name)}" target="_blank" rel="noopener noreferrer" class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-50 transition-colors" title="View on Google Fonts">
+              <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </a>
+          </div>
+
+          <div class="bg-surface-50 rounded-xl p-4 flex-1 flex items-center justify-center min-h-[72px]" style="font-family: '${font.name}', sans-serif;">
+            <p class="text-xl text-surface-800 text-center leading-snug">${escapeHTML(font.preview || 'The quick brown fox jumps over the lazy dog')}</p>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-xs text-surface-500 leading-relaxed">${escapeHTML(font.reason)}</p>
+            ${font.pairsWith ? `<p class="text-xs text-surface-400">Pairs with <span class="font-medium text-surface-600">${escapeHTML(font.pairsWith)}</span></p>` : ''}
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    // ─── Utilities ───────────────────────────────────
+
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+  </script>
+
+</body>
+</html>
